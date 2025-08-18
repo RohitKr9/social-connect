@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import CustomUser
+from userprofile.models import Profile
 
 class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -31,3 +32,29 @@ class CustomUserSerializer(serializers.ModelSerializer):
         
         instance.save()
         return instance
+    
+class ChangePasswordSerializer(serializers.Serializer):
+    current_password = serializers.CharField()
+    new_password = serializers.CharField()
+    confirm_password = serializers.CharField()
+    
+    def validate(self, attrs):
+        user = self.context['request'].user
+        if not user.check_password(attrs['current_password']):
+            raise serializers.ValidationError('Current password is wrong')
+
+        if attrs['new_password'] != attrs['confirm_password']:
+            raise serializers.ValidationError('new password are not same')
+        
+        return attrs
+
+    def save(self):
+        user = self.context['request'].user
+        user.set_password(self.validated_data['new_password'])
+        user.save()
+        return user
+
+class ProfileSerializer(serializers.Serializer):
+    class Meta:
+        model = Profile
+        fields = '__all__'    

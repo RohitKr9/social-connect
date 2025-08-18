@@ -37,13 +37,4 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     objects = CustomUserManager()
 
     USERNAME_FIELD = 'email' 
-    REQUIRED_FIELDS = ['username']  
-
-
-class Profile(models.Model):
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='profile')
-    bio = models.TextField(max_length=500, blank=True)
-    avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
-    followers_count = models.PositiveIntegerField(default=0)
-    following_count = models.PositiveIntegerField(default=0)
-    updated_at = models.DateTimeField(auto_now=True)
+    REQUIRED_FIELDS = ['username', 'password', 'first_name']  

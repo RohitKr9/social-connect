@@ -4,7 +4,7 @@ from django.db import models
 
 
 
-class EmailOrUsernameBackend(ModelBackend):
+class EmailOrUsernameModelBackend(ModelBackend):
     def authenticate(self, request, identifier=None, password=None, **kwargs):
         UserModel = get_user_model()
         

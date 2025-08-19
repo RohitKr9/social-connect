@@ -57,3 +57,24 @@ class UserProfileSerializer(serializers.ModelSerializer):
             following=request.user
         ).exists()
 
+class UserFollowSerializer(serializers.ModelSerializer):
+    follower = serializers.HiddenField(default=serializers.CurrentUserDefault())
+
+    class Meta:
+        model = UserFollow
+        fields = ['id', 'follower', 'following']
+        validators = [
+            serializers.UniqueTogetherValidator(
+                queryset=UserFollow.objects.all(),
+                fields=['follower', 'following'],
+                message="You are already following this user."
+            )
+        ]
+
+class ProfileListSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username')
+    first_name = serializers.CharField(source='user.first_name')
+    last_name = serializers.CharField(source='user.last_name')
+    class Meta:
+        model = Profile
+        fields = ['id', 'username', 'first_name', 'last_name', 'bio', 'avatar']

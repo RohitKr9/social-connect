@@ -1,9 +1,10 @@
-from rest_framework.generics import GenericAPIView
+from rest_framework.views import APIView
+from rest_framework.generics import GenericAPIView, ListAPIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework  import status
-from .serializers import UserProfileSerializer
-from .models import Profile
+from .serializers import UserProfileSerializer, UserFollowSerializer, ProfileListSerializer
+from .models import Profile, UserFollow
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from .permissions import CanViewProfile
@@ -49,7 +50,6 @@ class UserProfileEditView(GenericAPIView):
 
             if serializer.is_valid():
                 serializer.save()
-                print(serializer.data, "-----------------------")
                 return Response({
                     'profile':serializer.data
                 }, status=status.HTTP_201_CREATED)
@@ -61,3 +61,45 @@ class UserProfileEditView(GenericAPIView):
             return Response({
                 'error': 'User not found.'
             }, status=status.HTTP_404_NOT_FOUND)
+
+class FollowUserView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = UserFollowSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class UnfollowUserView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        following_id = request.data.get('following')
+        try:
+            follow_instance = UserFollow.objects.get(follower=request.user, following_id=following_id)
+            follow_instance.delete()
+            return Response({"detail": "Unfollowed successfully."}, status=status.HTTP_204_NO_CONTENT)
+        except UserFollow.DoesNotExist:
+            return Response({"detail": "You are not following this user."}, status=status.HTTP_400_BAD_REQUEST)
+
+class FollowingListView(ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserFollowSerializer
+
+    def get_queryset(self):
+        return UserFollow.objects.filter(follower=self.request.user)
+
+class FollowersListView(ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserFollowSerializer
+
+    def get_queryset(self):
+        return UserFollow.objects.filter(following=self.request.user)
+    
+class ProfileListView(ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProfileListSerializer
+    def get_queryset(self):
+        return Profile.objects.all()

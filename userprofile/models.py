@@ -42,21 +42,17 @@ class Profile(models.Model):
     def update_stats(self):
 
         self.followers_count = UserFollow.objects.filter(
-            following=self.user, 
-            is_active=True
+            following=self.user
         ).count()
         
         self.following_count = UserFollow.objects.filter(
-            follower=self.user, 
-            is_active=True
+            follower=self.user
         ).count()
         
-        self.posts_count = Post.objects.filter(author=self.user).count()
+        self.post_count = Post.objects.filter(author=self.user).count()
         
-        self.save(update_fields=['followers_count', 'following_count', 'posts_count'])
-        
-        
-        
+        self.save(update_fields=['followers_count', 'following_count', 'post_count'])
+             
 class UserFollow(models.Model):
     
     follower = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='following_set')
@@ -66,4 +62,39 @@ class UserFollow(models.Model):
         unique_together = ('follower', 'following')
 
 class Post(models.Model):
-    pass
+    CATEGORY_CHOICES = [
+        ('general', 'General'),
+        ('announcement', 'Announcement'),
+        ('question', 'Question'),
+    ]
+    
+    content = models.TextField(max_length=280, default='')
+    author = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='posts', null=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    image_url = models.URLField(blank=True, null=True)
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='general')
+    is_active = models.BooleanField(default=True)
+    like_count = models.PositiveIntegerField(default=0)
+    comment_count = models.PositiveIntegerField(default=0)
+    
+    class Meta:
+        ordering = ['-created_at']
+
+class Like(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='likes')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['user', 'post']
+
+class Comment(models.Model):
+    content = models.TextField(max_length=200)
+    author = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='comments')
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments')
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        ordering = ['-created_at']

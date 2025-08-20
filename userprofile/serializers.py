@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Profile, UserFollow
+from .models import Profile, UserFollow, Comment, Post
 
 class UserProfileSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
@@ -13,7 +13,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
     
     followers_count = serializers.IntegerField(read_only=True)
     following_count = serializers.IntegerField(read_only=True)
-    posts_count = serializers.IntegerField(read_only=True)
+    post_count = serializers.IntegerField(read_only=True)
     
     is_following = serializers.SerializerMethodField()
     is_follower = serializers.SerializerMethodField()
@@ -23,12 +23,12 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'username', 'first_name', 'last_name', 'last_active',
             'bio', 'avatar', 'website', 'profile_visibility',
-            'followers_count', 'following_count', 'posts_count',
+            'followers_count', 'following_count', 'post_count',
             'is_following', 'is_follower'
         ]
         read_only_fields = [
             'username', 'email', 'first_name', 'last_name', 'last_active', 'followers_count', 
-            'following_count', 'posts_count', 'is_following', 'is_follower'
+            'following_count', 'post_count', 'is_following', 'is_follower'
         ]
 
     def get_is_following(self, obj):
@@ -78,3 +78,27 @@ class ProfileListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         fields = ['id', 'username', 'first_name', 'last_name', 'bio', 'avatar']
+
+class CommentSerializer(serializers.ModelSerializer):
+    author_username = serializers.CharField(source='author.username', read_only=True)
+    
+    class Meta:
+        model = Comment
+        fields = ['id', 'content', 'author', 'author_username', 'created_at']
+        read_only_fields = ['author']
+
+class PostSerializer(serializers.ModelSerializer):
+    author_username = serializers.CharField(source='author.username', read_only=True)
+    is_liked = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Post
+        fields = ['id', 'content', 'author', 'author_username', 'created_at', 'updated_at', 
+                 'image_url', 'category', 'like_count', 'comment_count', 'is_liked']
+        read_only_fields = ['author', 'like_count', 'comment_count']
+    
+    def get_is_liked(self, obj):
+        request = self.context.get('request')
+        if request.user.is_authenticated:
+            return obj.likes.filter(user=request.user).exists()
+        return False

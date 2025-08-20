@@ -1,13 +1,16 @@
 from rest_framework.views import APIView
-from rest_framework.generics import GenericAPIView, ListAPIView
+from rest_framework.generics import GenericAPIView, ListAPIView,ListCreateAPIView, RetrieveUpdateDestroyAPIView,CreateAPIView,DestroyAPIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework  import status
-from .serializers import UserProfileSerializer, UserFollowSerializer, ProfileListSerializer
-from .models import Profile, UserFollow
+from rest_framework.pagination import PageNumberPagination
+from .serializers import UserProfileSerializer, UserFollowSerializer, ProfileListSerializer, CommentSerializer, PostSerializer
+from .models import Profile, UserFollow, Post, Comment, Like
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
-from .permissions import CanViewProfile
+from .permissions import CanViewProfile, IsOwnerOrReadOnly
+from django.db.models import F
+
 
 
 User = get_user_model()
@@ -21,6 +24,8 @@ class UserProfileDetailView(GenericAPIView):
         try:
             user = get_object_or_404(User, id=user_id)
             profile = get_object_or_404(Profile, user=user)
+
+            profile.update_stats()
 
             self.check_object_permissions(request, profile)
             
@@ -50,6 +55,7 @@ class UserProfileEditView(GenericAPIView):
 
             if serializer.is_valid():
                 serializer.save()
+                profile.update_stats()
                 return Response({
                     'profile':serializer.data
                 }, status=status.HTTP_201_CREATED)
@@ -103,3 +109,98 @@ class ProfileListView(ListAPIView):
     serializer_class = ProfileListSerializer
     def get_queryset(self):
         return Profile.objects.all()
+
+class PostPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+class PostListCreateView(ListCreateAPIView):
+    """List all posts or create a new post"""
+    queryset = Post.objects.filter(is_active=True)
+    serializer_class = PostSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = PostPagination
+    
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+
+class PostDetailView(RetrieveUpdateDestroyAPIView):
+   
+    queryset = Post.objects.filter(is_active=True)
+    serializer_class = PostSerializer
+    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
+    
+    def perform_destroy(self, instance):
+        instance.is_active = False
+        instance.save()
+
+class PostLikeToggleView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, post_id):
+        post = get_object_or_404(Post, id=post_id, is_active=True)
+        like, created = Like.objects.get_or_create(user=request.user, post=post)
+        
+        if created:
+            post.like_count = F('like_count') + 1
+            post.save(update_fields=['like_count'])
+            return Response({'status': 'liked', 'message': 'Post liked successfully'})
+        else:
+            like.delete()
+            post.like_count = F('like_count') - 1
+            post.save(update_fields=['like_count'])
+            return Response({'status': 'unliked', 'message': 'Post unliked successfully'})
+    
+    def delete(self, request, post_id):
+        post = get_object_or_404(Post, id=post_id, is_active=True)
+        like = get_object_or_404(Like, user=request.user, post=post)
+        like.delete()
+        post.like_count = F('like_count') - 1
+        post.save(update_fields=['like_count'])
+        return Response({'status': 'unliked', 'message': 'Post unliked successfully'})
+
+class PostLikeStatusView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, post_id):
+        if not request.user.is_authenticated:
+            return Response({'is_liked': False})
+        
+        post = get_object_or_404(Post, id=post_id, is_active=True)
+        is_liked = post.likes.filter(user=request.user).exists()
+        return Response({'is_liked': is_liked})
+
+class PostCommentListView(ListAPIView):
+    serializer_class = CommentSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        post_id = self.kwargs['post_id']
+        return Comment.objects.filter(post_id=post_id, is_active=True)
+
+class PostCommentCreateView(CreateAPIView):
+    serializer_class = CommentSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def perform_create(self, serializer):
+        post_id = self.kwargs['post_id']
+        post = get_object_or_404(Post, id=post_id, is_active=True)
+        serializer.save(author=self.request.user, post=post)
+        post.comment_count = F('comment_count') + 1
+        post.save(update_fields=['comment_count'])
+
+class CommentDetailView(DestroyAPIView):
+    queryset = Comment.objects.filter(is_active=True)
+    serializer_class = CommentSerializer
+    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
+    
+    def perform_destroy(self, instance):
+        instance.is_active = False
+        instance.save()
+        # Update comment count
+        post = instance.post
+        post.comment_count = F('comment_count') - 1
+        post.save(update_fields=['comment_count'])
+        return Response({'message': 'Comment deleted successfully'}, 
+                       status=status.HTTP_204_NO_CONTENT)

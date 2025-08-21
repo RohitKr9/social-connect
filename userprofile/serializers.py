@@ -80,22 +80,22 @@ class ProfileListSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'first_name', 'last_name', 'bio', 'avatar']
 
 class CommentSerializer(serializers.ModelSerializer):
-    author_username = serializers.CharField(source='author.username', read_only=True)
+    author_username = serializers.CharField(source='user.username', read_only=True)
     
     class Meta:
         model = Comment
-        fields = ['id', 'content', 'author', 'author_username', 'created_at']
-        read_only_fields = ['author']
+        fields = ['id', 'content', 'user', 'author_username', 'created_at']
+        read_only_fields = ['user']
 
 class PostSerializer(serializers.ModelSerializer):
-    author_username = serializers.CharField(source='author.username', read_only=True)
+    author_username = serializers.CharField(source='user.username', read_only=True)
     is_liked = serializers.SerializerMethodField()
     
     class Meta:
         model = Post
-        fields = ['id', 'content', 'author', 'author_username', 'created_at', 'updated_at', 
+        fields = ['id', 'content', 'user', 'author_username', 'created_at', 'updated_at', 
                  'image_url', 'category', 'like_count', 'comment_count', 'is_liked']
-        read_only_fields = ['author', 'like_count', 'comment_count']
+        read_only_fields = ['user', 'like_count', 'comment_count']
     
     def get_is_liked(self, obj):
         request = self.context.get('request')

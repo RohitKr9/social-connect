@@ -49,7 +49,7 @@ class Profile(models.Model):
             follower=self.user
         ).count()
         
-        self.post_count = Post.objects.filter(author=self.user).count()
+        self.post_count = Post.objects.filter(user=self.user).count()
         
         self.save(update_fields=['followers_count', 'following_count', 'post_count'])
              
@@ -69,7 +69,7 @@ class Post(models.Model):
     ]
     
     content = models.TextField(max_length=280, default='')
-    author = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='posts', null=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='posts', null=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True)
     updated_at = models.DateTimeField(auto_now=True)
     image_url = models.URLField(blank=True, null=True)
@@ -91,7 +91,7 @@ class Like(models.Model):
 
 class Comment(models.Model):
     content = models.TextField(max_length=200)
-    author = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='comments')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='comments')
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments')
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)

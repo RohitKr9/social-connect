@@ -138,8 +138,8 @@ class PostDetailView(RetrieveUpdateDestroyAPIView):
 class PostLikeToggleView(APIView):
     permission_classes = [IsAuthenticated]
     
-    def post(self, request, post_id):
-        post = get_object_or_404(Post, id=post_id, is_active=True)
+    def post(self, request, pk):
+        post = get_object_or_404(Post, id=pk, is_active=True)
         like, created = Like.objects.get_or_create(user=request.user, post=post)
         
         if created:
@@ -152,8 +152,8 @@ class PostLikeToggleView(APIView):
             post.save(update_fields=['like_count'])
             return Response({'status': 'unliked', 'message': 'Post unliked successfully'})
     
-    def delete(self, request, post_id):
-        post = get_object_or_404(Post, id=post_id, is_active=True)
+    def delete(self, request, pk):
+        post = get_object_or_404(Post, id=pk, is_active=True)
         like = get_object_or_404(Like, user=request.user, post=post)
         like.delete()
         post.like_count = F('like_count') - 1
@@ -163,11 +163,11 @@ class PostLikeToggleView(APIView):
 class PostLikeStatusView(APIView):
     permission_classes = [IsAuthenticated]
     
-    def get(self, request, post_id):
+    def get(self, request, pk):
         if not request.user.is_authenticated:
             return Response({'is_liked': False})
         
-        post = get_object_or_404(Post, id=post_id, is_active=True)
+        post = get_object_or_404(Post, id=pk, is_active=True)
         is_liked = post.likes.filter(user=request.user).exists()
         return Response({'is_liked': is_liked})
 
@@ -176,7 +176,7 @@ class PostCommentListView(ListAPIView):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        post_id = self.kwargs['post_id']
+        post_id = self.kwargs['pk']
         return Comment.objects.filter(post_id=post_id, is_active=True)
 
 class PostCommentCreateView(CreateAPIView):
@@ -184,9 +184,9 @@ class PostCommentCreateView(CreateAPIView):
     permission_classes = [IsAuthenticated]
     
     def perform_create(self, serializer):
-        post_id = self.kwargs['post_id']
+        post_id = self.kwargs['pk']
         post = get_object_or_404(Post, id=post_id, is_active=True)
-        serializer.save(author=self.request.user, post=post)
+        serializer.save(user=self.request.user, post=post)
         post.comment_count = F('comment_count') + 1
         post.save(update_fields=['comment_count'])
 

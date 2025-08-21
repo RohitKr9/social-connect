@@ -11,10 +11,10 @@ urlpatterns = [
     path('api/users/follower/', FollowersListView.as_view()),
     path('api/users/profile-list', ProfileListView.as_view()),
     path('api/posts/', PostListCreateView.as_view()), #create list
-    path('api/post/<int:user_id>/', PostDetailView.as_view()), #get put delete
-    path('/api/posts/<int:id>/like/', PostLikeToggleView.as_view()), #like unlike
-    path('/api/posts/<int:id>/like-status/', PostLikeStatusView.as_view()),
-    path('/api/posts/<int:id>/comments/', PostCommentCreateView.as_view()),
-    path('/api/posts/<int:id>/comments/', PostCommentListView.as_view()),
-    path('/api/comments/<int:id>/', CommentDetailView.as_view())
+    path('api/posts/<int:pk>/', PostDetailView.as_view()), #get put delete
+    path('api/posts/<int:pk>/like/', PostLikeToggleView.as_view()), #like unlike
+    path('api/posts/<int:pk>/like-status/', PostLikeStatusView.as_view()),
+    path('api/posts/<int:pk>/comments/', PostCommentCreateView.as_view()),
+    path('api/posts/<int:pk>/comments-list/', PostCommentListView.as_view()),
+    path('api/comments/<int:pk>/', CommentDetailView.as_view())
 ]

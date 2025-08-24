@@ -72,7 +72,11 @@ class FollowUserView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        serializer = UserFollowSerializer(data=request.data, context={'request': request})
+        print(request.data, "------This is the request data")
+        profile = get_object_or_404(Profile, id=request.data.get('following'))
+        user_to_follow = profile.user 
+        print(user_to_follow.id, "------This is the user to follow")
+        serializer = UserFollowSerializer(data={'following':user_to_follow.id}, context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -92,23 +96,44 @@ class UnfollowUserView(APIView):
 
 class FollowingListView(ListAPIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = UserFollowSerializer
+    serializer_class = ProfileListSerializer
 
     def get_queryset(self):
-        return UserFollow.objects.filter(follower=self.request.user)
+        following_user_ids = UserFollow.objects.filter(
+            follower=self.request.user
+        ).values_list('following_id', flat=True)
+
+        return Profile.objects.filter(user__id__in=following_user_ids)
 
 class FollowersListView(ListAPIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = UserFollowSerializer
+    serializer_class = ProfileListSerializer
 
     def get_queryset(self):
-        return UserFollow.objects.filter(following=self.request.user)
-    
+        follower_user_ids = UserFollow.objects.filter(
+            following=self.request.user
+        ).values_list('follower_id', flat=True)
+
+        return Profile.objects.filter(user__id__in=follower_user_ids)
+
+class MyPostListView(ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = PostSerializer
+
+    def get_queryset(self):
+        return Post.objects.filter(user=self.request.user, is_active=True)
+       
 class ProfileListView(ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = ProfileListSerializer
     def get_queryset(self):
-        return Profile.objects.all()
+        following_user_ids = UserFollow.objects.filter(
+            follower=self.request.user
+        ).values_list('following_id', flat=True)
+
+        return Profile.objects.exclude(
+            user__id__in=list(following_user_ids) + [self.request.user.id]
+        )
 
 class PostPagination(PageNumberPagination):
     page_size = 20
@@ -123,7 +148,19 @@ class PostListCreateView(ListCreateAPIView):
     pagination_class = PostPagination
     
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
+        print(self.request.user)
+        serializer.save(user=self.request.user)
+
+    def get_queryset(self):
+        user = self.request.user
+
+        following_ids = UserFollow.objects.filter(
+            follower=user
+        ).values_list('following_id', flat=True)
+
+        allowed_user_ids = list(following_ids) + [user.id]
+
+        return Post.objects.filter(user__id__in=allowed_user_ids, is_active=True)
 
 class PostDetailView(RetrieveUpdateDestroyAPIView):
    

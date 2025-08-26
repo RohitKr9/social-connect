@@ -151,10 +151,6 @@ SIMPLE_JWT = {
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
-]   
-
-CORS_ORIGIN_ALLOW_ALL = False
-CORS_ORIGIN_WHITELIST = [
-    "http://localhost:3000",
     "https://social-connect-front.vercel.app/"
-]
+]   
+CORS_ALLOW_CREDENTIALS = True

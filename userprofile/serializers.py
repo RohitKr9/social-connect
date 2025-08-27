@@ -6,6 +6,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(source='user.first_name', read_only=True)
     last_name = serializers.CharField(source='user.last_name', read_only=True)
     last_active = serializers.DateTimeField(source='user.last_active', read_only=True)
+    user_id = serializers.IntegerField(source='user.id', read_only=True)
    
     bio = serializers.CharField(max_length=160, required=False, allow_blank=True)
     website = serializers.URLField(required=False, allow_blank=True)
@@ -21,13 +22,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         fields = [
-            'id', 'username', 'first_name', 'last_name', 'last_active',
+            'id', 'user_id', 'username', 'first_name', 'last_name', 'last_active',
             'bio', 'avatar', 'website', 'profile_visibility',
             'followers_count', 'following_count', 'post_count',
             'is_following', 'is_follower'
         ]
         read_only_fields = [
-            'username', 'email', 'first_name', 'last_name', 'last_active', 'followers_count', 
+            'username', 'user_id','email', 'first_name', 'last_name', 'last_active', 'followers_count', 
             'following_count', 'post_count', 'is_following', 'is_follower'
         ]
 

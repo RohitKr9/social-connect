@@ -9,7 +9,7 @@ from .models import Profile, UserFollow, Post, Comment, Like
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from .permissions import CanViewProfile, IsOwnerOrReadOnly
-from django.db.models import F
+from django.db.models import F, Q
 
 
 
@@ -141,7 +141,7 @@ class PostPagination(PageNumberPagination):
     max_page_size = 100
 
 class PostListCreateView(ListCreateAPIView):
-    """List all posts or create a new post"""
+    
     queryset = Post.objects.filter(is_active=True)
     serializer_class = PostSerializer
     permission_classes = [IsAuthenticated]
@@ -160,7 +160,10 @@ class PostListCreateView(ListCreateAPIView):
 
         allowed_user_ids = list(following_ids) + [user.id]
 
-        return Post.objects.filter(user__id__in=allowed_user_ids, is_active=True)
+        return Post.objects.filter(
+            Q(user__id__in=allowed_user_ids) |
+            Q(user__profile__profile_visibility='public'),
+            is_active=True).order_by('-created_at')
 
 class PostDetailView(RetrieveUpdateDestroyAPIView):
    

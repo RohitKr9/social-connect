@@ -76,9 +76,10 @@ class ProfileListSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username')
     first_name = serializers.CharField(source='user.first_name')
     last_name = serializers.CharField(source='user.last_name')
+    user_id = serializers.IntegerField(source='user.id')
     class Meta:
         model = Profile
-        fields = ['id', 'username', 'first_name', 'last_name', 'bio', 'avatar']
+        fields = ['id', 'user_id', 'username', 'first_name', 'last_name', 'bio', 'avatar']
 
 class CommentSerializer(serializers.ModelSerializer):
     author_username = serializers.CharField(source='user.username', read_only=True)

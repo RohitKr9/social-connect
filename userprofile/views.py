@@ -18,14 +18,14 @@ User = get_user_model()
 # Create your views here.
 class UserProfileDetailView(GenericAPIView):
     serializer_class = UserProfileSerializer
-    permission_classes = [IsAuthenticated, CanViewProfile]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, user_id):
         try:
             user = get_object_or_404(User, id=user_id)
             profile = get_object_or_404(Profile, user=user)
 
-            profile.update_stats()
+            profile.update_stats()  
 
             self.check_object_permissions(request, profile)
             
